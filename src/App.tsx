@@ -1,26 +1,24 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { Router, Route, Switch, BrowserRouter } from 'react-router-dom';
+import { createBrowserHistory } from 'history';
 
-function App() {
+const MainPage = React.lazy(
+  () => import('./components/pages/MainPage/MainPage')
+);
+const hist = createBrowserHistory();
+
+const App = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router history={hist}>
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <BrowserRouter>
+          <Switch>
+            <Route exact path="/" component={MainPage} />
+          </Switch>
+        </BrowserRouter>
+      </React.Suspense>
+    </Router>
   );
-}
+};
 
 export default App;
