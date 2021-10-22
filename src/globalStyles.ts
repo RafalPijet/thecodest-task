@@ -27,7 +27,7 @@ const container = {
     }
 };
 
-const primaryColor = '#6A0572';
+const primaryColor = 'rgba(255, 255, 255, .6)';
 const secondaryColor = '#34FFC8';
 const disabledColor = '#9991af';
 
