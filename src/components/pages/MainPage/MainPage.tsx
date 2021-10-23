@@ -4,11 +4,12 @@ import { Grid } from '@material-ui/core';
 import EnterArea from '../../features/EnterArea/EntarArea';
 import DisplayArea from '../../features/DisplayArea/DisplayArea';
 import { useStyles } from './MainPageStyle';
-import { Markers, AxiosResponseOfName } from '../../../types';
+import { Markers, AxiosResponseOfName, KeyAvailable } from '../../../types';
 import image from '../../../images/background.jpg';
 
 const MainPage: React.FC = () => {
   const classes = useStyles();
+  const [isPending, setIsPending] = useState<boolean>(false);
   const [enteredText, setEnteredText] = useState<string>('');
   const [displayedText, setDisplayedText] = useState<string>('');
   const [findedMarkersQuantity, setFindedMarkersQuantity] = useState<number>(0);
@@ -17,23 +18,39 @@ const MainPage: React.FC = () => {
   );
 
   useEffect(() => {
+    if (!isPending && markersWithoutDuplicates.size !== 0) {
+      console.log('Effect');
+      fetchingValueHandling();
+    }
+  }, [isPending]);
+
+  useEffect(() => {
+    // if (!isPending) {
+    //   fetchingValueHandling();
+    // }
     let convertedText = enteredText;
     if (markersWithoutDuplicates.size !== 0) {
       markersWithoutDuplicates.forEach((item: Markers, key: string) => {
-        if (item.bitcoinName !== undefined) {
-          //   console.log(key + ' - ' + item.symbol + ', ' + item.bitcoinName);
-          convertedText = enteredText.replaceAll(key, item.bitcoinName);
+        if (item.type === KeyAvailable.name && item.name !== undefined) {
+          convertedText = convertedText.replaceAll(key, item.name);
+        }
+        if (item.type === KeyAvailable.value && item.name !== undefined) {
+          item.value !== undefined
+            ? (convertedText = convertedText.replaceAll(key, item.value))
+            : (convertedText = convertedText.replaceAll(
+                key,
+                `Value fot ${item.name} isn't available!!!`
+              ));
         }
       });
     }
     setDisplayedText(convertedText);
-  }, [markersWithoutDuplicates, enteredText]);
+  }, [enteredText, markersWithoutDuplicates]);
 
   const enteredTextHandling = (text: string) => {
     setEnteredText(text);
     const pattern = /{{ (\w+)\/(\w+) }}/gim;
     let result = [...text.matchAll(pattern)];
-    // console.log(result);
     if (result.length !== findedMarkersQuantity) {
       result.forEach((item) => {
         if (!markersWithoutDuplicates.has(item[0])) {
@@ -42,25 +59,24 @@ const MainPage: React.FC = () => {
               markersWithoutDuplicates.set(item[0], {
                 type: item[1],
                 symbol: item[2],
-                bitcoinName: undefined,
+                name: undefined,
+                value: undefined,
               })
             )
           );
         }
       });
       setFindedMarkersQuantity(result.length);
-      fetchingDataHandling();
+      fetchingNameHandling();
     }
   };
 
-  const fetchingDataHandling = () => {
-    // console.log('Markers size: ' + markersWithoutDuplicates.size);
-    // console.log(markersWithoutDuplicates);
+  const fetchingNameHandling = () => {
     markersWithoutDuplicates.forEach(async (item: Markers, key: string) => {
-      //   console.log(item.bitcoinName);
-      if (item.bitcoinName === undefined) {
+      if (item.name === undefined) {
         try {
-          console.log('Go');
+          setIsPending(true);
+          console.log('Go Name');
           const res: AxiosResponse<AxiosResponseOfName> = await axios.get(
             `https://api.coinpaprika.com/v1/search/?q=${item.symbol}&c=currencies&modifier=symbol_search&limit=1`
           );
@@ -69,17 +85,65 @@ const MainPage: React.FC = () => {
               new Map(
                 markersWithoutDuplicates.set(key, {
                   ...item,
-                  bitcoinName: res.data.currencies[0].name,
+                  name: res.data.currencies[0].name,
                 })
               )
             );
-            // console.log(markersWithoutDuplicates);
           }
+          setIsPending(false);
         } catch (err: any) {
           console.log(err.response);
+          setIsPending(false);
         }
       }
     });
+  };
+
+  const fetchingValueHandling = () => {
+    markersWithoutDuplicates.forEach(async (item: Markers, key: string) => {
+      if (
+        item.type === KeyAvailable.value &&
+        item.name !== undefined &&
+        item.value === undefined
+      ) {
+        console.log(item);
+        try {
+          setIsPending(true);
+          console.log('Go Value');
+          const res: AxiosResponse<any> = await axios.get(
+            `https://api.coinpaprika.com/v1/tickers?quotes=USD,${item.symbol}`
+          );
+          if (res.data) {
+            const result = res.data[0].quotes.USD.price.toFixed(2);
+            setMarkersWithoutDuplicates(
+              new Map(
+                markersWithoutDuplicates.set(key, {
+                  ...item,
+                  value: `1 ${item.name} = ${result} USD`,
+                })
+              )
+            );
+          }
+          setIsPending(false);
+        } catch (err: any) {
+          console.log(err.response);
+          setIsPending(false);
+        }
+      }
+    });
+  };
+
+  const test = async (symbol: string) => {
+    try {
+      const res: AxiosResponse<any> = await axios.get(
+        `https://api.coinpaprika.com/v1/tickers?quotes=USD,${symbol}`
+      );
+      if (res.data) {
+        console.log(res.data[0].quotes.USD.price.toFixed(2));
+      }
+    } catch (err: any) {
+      console.log(err.response);
+    }
   };
 
   return (
@@ -98,11 +162,15 @@ const MainPage: React.FC = () => {
             <DisplayArea convertedText={displayedText} />
             <button
               onClick={() => {
-                console.log(markersWithoutDuplicates);
-                console.log(enteredText);
+                // console.log(markersWithoutDuplicates);
+                // console.log(enteredText);
+                test('BITGOLD');
               }}
             >
-              Test
+              Get value
+            </button>
+            <button onClick={() => console.log(markersWithoutDuplicates)}>
+              Show Map
             </button>
           </Grid>
         </Grid>

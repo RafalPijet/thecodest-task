@@ -16,5 +16,11 @@ export interface AxiosResponseOfName {
 export interface Markers {
     type: string;
     symbol: string;
-    bitcoinName: string | undefined;
+    name: string | undefined;
+    value: string | undefined;
+}
+
+export enum KeyAvailable {
+    name = 'Name',
+    value = 'Value'
 }

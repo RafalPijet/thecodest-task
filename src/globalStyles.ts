@@ -29,6 +29,7 @@ const container = {
 
 const primaryColor = 'rgba(255, 255, 255, .6)';
 const secondaryColor = '#34FFC8';
+const displayColor = 'rgba(52,255,200, .7)'
 const disabledColor = '#9991af';
 
 export {
@@ -36,5 +37,6 @@ export {
     container,
     primaryColor,
     secondaryColor,
+    displayColor,
     disabledColor
 }
