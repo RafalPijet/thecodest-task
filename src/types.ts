@@ -20,6 +20,11 @@ export interface Markers {
     value: string | undefined;
 }
 
+export interface Entry {
+    key: string;
+    item: Markers;
+}
+
 export enum KeyAvailable {
     name = 'Name',
     value = 'Value'

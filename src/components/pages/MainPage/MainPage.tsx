@@ -4,11 +4,17 @@ import { Grid } from '@material-ui/core';
 import EnterArea from '../../features/EnterArea/EntarArea';
 import DisplayArea from '../../features/DisplayArea/DisplayArea';
 import { useStyles } from './MainPageStyle';
-import { Markers, AxiosResponseOfName, KeyAvailable } from '../../../types';
+import {
+  Markers,
+  AxiosResponseOfName,
+  KeyAvailable,
+  Entry,
+} from '../../../types';
 import image from '../../../images/background.jpg';
 
 const MainPage: React.FC = () => {
   const classes = useStyles();
+  const pattern = /{{ (\w+)\/(\w+) }}/gim;
   const [isPending, setIsPending] = useState<boolean>(false);
   const [enteredText, setEnteredText] = useState<string>('');
   const [displayedText, setDisplayedText] = useState<string>('');
@@ -16,20 +22,39 @@ const MainPage: React.FC = () => {
   const [markersWithoutDuplicates, setMarkersWithoutDuplicates] = useState(
     new Map<string, Markers>()
   );
+  const [quantity, setQuantity] = useState<Entry[]>([]);
 
   useEffect(() => {
-    if (!isPending && markersWithoutDuplicates.size !== 0) {
-      console.log('Effect');
-      fetchingValueHandling();
+    const result = displayedText.match(pattern);
+    if (result !== null && result.length && quantity.length !== 0) {
+      fetchingNameHandling();
+      console.log('Error');
     }
-  }, [isPending]);
+  }, [displayedText, quantity]);
+
+  useEffect(() => {
+    // let counter = 0;
+    // markersWithoutDuplicates.forEach((item: Markers) => {
+    //   if (item.type === KeyAvailable.value && item.name !== undefined) {
+    //     counter++;
+    //     console.log(counter);
+    //     console.log(quantity.length);
+    //   }
+    // });
+    if (enteredText.includes(KeyAvailable.value) && quantity.length !== 0) {
+      //   setIsValueFetching(true);
+      //   console.log(quantity);
+      //   console.log(markersWithoutDuplicates);
+      fetchingValueHandling(quantity);
+    }
+  }, [enteredText, quantity]);
 
   useEffect(() => {
     // if (!isPending) {
     //   fetchingValueHandling();
     // }
     let convertedText = enteredText;
-    if (markersWithoutDuplicates.size !== 0) {
+    if (markersWithoutDuplicates.size !== 0 && !isPending) {
       markersWithoutDuplicates.forEach((item: Markers, key: string) => {
         if (item.type === KeyAvailable.name && item.name !== undefined) {
           convertedText = convertedText.replaceAll(key, item.name);
@@ -39,17 +64,18 @@ const MainPage: React.FC = () => {
             ? (convertedText = convertedText.replaceAll(key, item.value))
             : (convertedText = convertedText.replaceAll(
                 key,
-                `Value fot ${item.name} isn't available!!!`
+                `Value for ${item.name} isn't available!!!`
               ));
         }
       });
     }
-    setDisplayedText(convertedText);
+    if (!isPending) {
+      setDisplayedText(convertedText);
+    }
   }, [enteredText, markersWithoutDuplicates]);
 
   const enteredTextHandling = (text: string) => {
     setEnteredText(text);
-    const pattern = /{{ (\w+)\/(\w+) }}/gim;
     let result = [...text.matchAll(pattern)];
     if (result.length !== findedMarkersQuantity) {
       result.forEach((item) => {
@@ -72,6 +98,7 @@ const MainPage: React.FC = () => {
   };
 
   const fetchingNameHandling = () => {
+    let test: any[] = [];
     markersWithoutDuplicates.forEach(async (item: Markers, key: string) => {
       if (item.name === undefined) {
         try {
@@ -89,6 +116,18 @@ const MainPage: React.FC = () => {
                 })
               )
             );
+            if (item.type === KeyAvailable.value) {
+              //   console.log(res.data.currencies[0].name);
+              const entry: Entry = {
+                key,
+                item: {
+                  ...item,
+                  name: res.data.currencies[0].name,
+                },
+              };
+              test.push(entry);
+              setQuantity(test);
+            }
           }
           setIsPending(false);
         } catch (err: any) {
@@ -99,36 +138,39 @@ const MainPage: React.FC = () => {
     });
   };
 
-  const fetchingValueHandling = () => {
-    markersWithoutDuplicates.forEach(async (item: Markers, key: string) => {
-      if (
-        item.type === KeyAvailable.value &&
-        item.name !== undefined &&
-        item.value === undefined
-      ) {
-        console.log(item);
-        try {
-          setIsPending(true);
-          console.log('Go Value');
-          const res: AxiosResponse<any> = await axios.get(
-            `https://api.coinpaprika.com/v1/tickers?quotes=USD,${item.symbol}`
+  const fetchingValueHandling = (entry: Entry[]) => {
+    console.log('fetchingValueHandling');
+    // console.log(markersWithoutDuplicates);
+    // console.log(quantity);
+    setQuantity([]);
+    entry.forEach(async (item: Entry) => {
+      // console.log(item);
+      try {
+        setIsPending(true);
+        console.log('Go Value');
+        const res: AxiosResponse<any> = await axios.get(
+          `https://api.coinpaprika.com/v1/tickers?quotes=USD,${item.item.symbol}`
+        );
+        if (res.data) {
+          const result = res.data[0].quotes.USD.price.toFixed(2);
+          setMarkersWithoutDuplicates(
+            new Map(
+              markersWithoutDuplicates.set(item.key, {
+                ...item.item,
+                value: `1 ${item.item.name} = ${result} USD`,
+              })
+            )
           );
-          if (res.data) {
-            const result = res.data[0].quotes.USD.price.toFixed(2);
-            setMarkersWithoutDuplicates(
-              new Map(
-                markersWithoutDuplicates.set(key, {
-                  ...item,
-                  value: `1 ${item.name} = ${result} USD`,
-                })
-              )
-            );
-          }
-          setIsPending(false);
-        } catch (err: any) {
-          console.log(err.response);
-          setIsPending(false);
         }
+        setIsPending(false);
+      } catch (err: any) {
+        console.log(err.response);
+        console.log(item.key);
+        let text = enteredText.slice(0, enteredText.length);
+        text = text.replace('Value/BITGOLD', 'Error');
+        console.log(text);
+        setEnteredText('www');
+        setIsPending(false);
       }
     });
   };
@@ -169,7 +211,12 @@ const MainPage: React.FC = () => {
             >
               Get value
             </button>
-            <button onClick={() => console.log(markersWithoutDuplicates)}>
+            <button
+              onClick={() => {
+                console.log(markersWithoutDuplicates);
+                console.log(quantity);
+              }}
+            >
               Show Map
             </button>
           </Grid>
