@@ -21,4 +21,7 @@ export const useStyles = makeStyles(() => createStyles({
             background: "rgba(0, 0, 0, 0.2)"
         },
     },
+    title: {
+        padding: 30
+    }
 }))

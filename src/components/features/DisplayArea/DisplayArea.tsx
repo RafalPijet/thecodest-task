@@ -12,7 +12,7 @@ const DisplayArea: React.FC<Props> = (props) => {
     [classes.center]: isPending,
   });
   return (
-    <Paper className={rootClasses} variant="outlined">
+    <Paper className={rootClasses} elevation={5}>
       {isPending ? (
         <CircularProgress className={classes.spiner} />
       ) : (

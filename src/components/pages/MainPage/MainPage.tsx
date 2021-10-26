@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios, { AxiosResponse } from 'axios';
-import { Grid } from '@material-ui/core';
+import { Grid, Typography } from '@material-ui/core';
 import { useSnackbar } from 'notistack';
 import EnterArea from '../../features/EnterArea/EntarArea';
 import DisplayArea from '../../features/DisplayArea/DisplayArea';
@@ -13,7 +13,6 @@ import {
   ErrorMarker,
 } from '../../../types';
 import image from '../../../images/background.jpg';
-import { isError } from 'util';
 
 const MainPage: React.FC = () => {
   const classes = useStyles();
@@ -34,16 +33,21 @@ const MainPage: React.FC = () => {
   const [valuesEntry, setSetValuesEntry] = useState<Entry[]>([]);
 
   useEffect(() => {
+    const result = displayedText.match(pattern);
     if (error.isError) {
       enqueueSnackbar(error.message, { variant: 'error' });
     }
-  }, [error.isError]);
-
-  useEffect(() => {
-    if (enteredText.includes(KeyAvailable.value) && valuesEntry.length !== 0) {
-      fetchingValueHandling(valuesEntry);
+    if (result !== null && result.length && correctlyText !== null) {
+      let textOfDisplay = displayedText;
+      result.forEach((item: string) => {
+        if (displayedText.includes(item)) {
+          textOfDisplay = textOfDisplay.replace(item, '');
+          console.log('Error');
+        }
+      });
+      setDisplayedText(textOfDisplay);
     }
-  }, [enteredText, valuesEntry]);
+  }, [error.isError, displayedText]);
 
   useEffect(() => {
     let convertedText = enteredText;
@@ -68,22 +72,10 @@ const MainPage: React.FC = () => {
   }, [enteredText, markersWithoutDuplicates, correctlyText, isPending]);
 
   useEffect(() => {
-    const result = displayedText.match(pattern);
-    // console.log(result);
-    if (
-      result !== null &&
-      result.length &&
-      valuesEntry.length !== 0 &&
-      !isPending
-    ) {
-      result.forEach((item: string) => {
-        if (enteredText.includes(item) && displayedText.includes(item)) {
-          console.log('Error');
-          //   fetchingNameHandling();
-        }
-      });
+    if (enteredText.includes(KeyAvailable.value) && valuesEntry.length !== 0) {
+      fetchingValueHandling(valuesEntry);
     }
-  }, [isPending]);
+  }, [enteredText, valuesEntry]);
 
   const enteredTextHandling = (text: string) => {
     setCorrectlyText(null);
@@ -181,7 +173,6 @@ const MainPage: React.FC = () => {
   };
 
   const errorHandling = (isError: boolean, key: string, err?: any) => {
-    console.log(err);
     if (isError && err !== undefined) {
       if (err.response.status === 404) {
         setError({
@@ -205,8 +196,8 @@ const MainPage: React.FC = () => {
     const changedMap = new Map(markersWithoutDuplicates);
     changedMap.delete(key);
     setMarkersWithoutDuplicates(changedMap);
-    setIsPending(false);
     setError({ isError: false, message: '' });
+    setIsPending(false);
   };
 
   return (
@@ -218,6 +209,11 @@ const MainPage: React.FC = () => {
     >
       <div className={classes.container}>
         <Grid container justifyContent="center">
+          <Grid item xs={12} sm={12} md={12}>
+            <Typography className={classes.title} align="center" variant="h5">
+              Cryptocurrency Markers Converter
+            </Typography>
+          </Grid>
           <Grid item xs={12} sm={12} md={6}>
             <EnterArea
               setCorrectlyText={correctlyText}
@@ -231,6 +227,7 @@ const MainPage: React.FC = () => {
                 console.log(markersWithoutDuplicates);
                 console.log(valuesEntry);
                 console.log(isPending);
+                console.log(error);
               }}
             >
               Show Map
