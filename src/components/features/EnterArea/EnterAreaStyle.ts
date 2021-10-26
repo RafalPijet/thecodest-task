@@ -23,4 +23,5 @@ export const useStyles = makeStyles(() => createStyles({
 
 export interface Props {
     getContentText: (text: string) => void;
+    setCorrectlyText: string | null;
 }

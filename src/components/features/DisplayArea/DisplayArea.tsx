@@ -1,15 +1,25 @@
 import React from 'react';
-import { Paper, Typography } from '@material-ui/core';
+import classNames from 'classnames';
+import { Paper, Typography, CircularProgress } from '@material-ui/core';
 import { Props, useStyles } from './DisplayAreaStyle';
 
 const DisplayArea: React.FC<Props> = (props) => {
-  const { convertedText } = props;
+  const { convertedText, isPending } = props;
   const classes = useStyles();
+
+  const rootClasses = classNames({
+    [classes.root]: true,
+    [classes.center]: isPending,
+  });
   return (
-    <Paper className={classes.root} variant="outlined">
-      <Typography align="justify" className={classes.text}>
-        {convertedText}
-      </Typography>
+    <Paper className={rootClasses} variant="outlined">
+      {isPending ? (
+        <CircularProgress className={classes.spiner} />
+      ) : (
+        <Typography align="justify" className={classes.text}>
+          {convertedText}
+        </Typography>
+      )}
     </Paper>
   );
 };

@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Paper, TextField } from '@material-ui/core';
 import { Props, useStyles } from './EnterAreaStyle';
 
 const EnterArea: React.FC<Props> = (props) => {
-  const { getContentText } = props;
+  const { getContentText, setCorrectlyText } = props;
   const classes = useStyles();
   const [value, setValue] = useState<string>('');
+
+  useEffect(() => {
+    if (setCorrectlyText !== null) {
+      setValue(setCorrectlyText);
+    }
+  }, [setCorrectlyText]);
 
   const handleChangeText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setValue(event.target.value);

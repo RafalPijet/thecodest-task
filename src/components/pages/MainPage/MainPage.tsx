@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios, { AxiosResponse } from 'axios';
 import { Grid } from '@material-ui/core';
+import { useSnackbar } from 'notistack';
 import EnterArea from '../../features/EnterArea/EntarArea';
 import DisplayArea from '../../features/DisplayArea/DisplayArea';
 import { useStyles } from './MainPageStyle';
@@ -9,50 +10,42 @@ import {
   AxiosResponseOfName,
   KeyAvailable,
   Entry,
+  ErrorMarker,
 } from '../../../types';
 import image from '../../../images/background.jpg';
+import { isError } from 'util';
 
 const MainPage: React.FC = () => {
   const classes = useStyles();
   const pattern = /{{ (\w+)\/(\w+) }}/gim;
+  const { enqueueSnackbar } = useSnackbar();
+  const [error, setError] = useState<ErrorMarker>({
+    isError: false,
+    message: '',
+  });
   const [isPending, setIsPending] = useState<boolean>(false);
   const [enteredText, setEnteredText] = useState<string>('');
   const [displayedText, setDisplayedText] = useState<string>('');
+  const [correctlyText, setCorrectlyText] = useState<string | null>(null);
   const [findedMarkersQuantity, setFindedMarkersQuantity] = useState<number>(0);
   const [markersWithoutDuplicates, setMarkersWithoutDuplicates] = useState(
     new Map<string, Markers>()
   );
-  const [quantity, setQuantity] = useState<Entry[]>([]);
+  const [valuesEntry, setSetValuesEntry] = useState<Entry[]>([]);
 
   useEffect(() => {
-    const result = displayedText.match(pattern);
-    if (result !== null && result.length && quantity.length !== 0) {
-      fetchingNameHandling();
-      console.log('Error');
+    if (error.isError) {
+      enqueueSnackbar(error.message, { variant: 'error' });
     }
-  }, [displayedText, quantity]);
+  }, [error.isError]);
 
   useEffect(() => {
-    // let counter = 0;
-    // markersWithoutDuplicates.forEach((item: Markers) => {
-    //   if (item.type === KeyAvailable.value && item.name !== undefined) {
-    //     counter++;
-    //     console.log(counter);
-    //     console.log(quantity.length);
-    //   }
-    // });
-    if (enteredText.includes(KeyAvailable.value) && quantity.length !== 0) {
-      //   setIsValueFetching(true);
-      //   console.log(quantity);
-      //   console.log(markersWithoutDuplicates);
-      fetchingValueHandling(quantity);
+    if (enteredText.includes(KeyAvailable.value) && valuesEntry.length !== 0) {
+      fetchingValueHandling(valuesEntry);
     }
-  }, [enteredText, quantity]);
+  }, [enteredText, valuesEntry]);
 
   useEffect(() => {
-    // if (!isPending) {
-    //   fetchingValueHandling();
-    // }
     let convertedText = enteredText;
     if (markersWithoutDuplicates.size !== 0 && !isPending) {
       markersWithoutDuplicates.forEach((item: Markers, key: string) => {
@@ -64,7 +57,7 @@ const MainPage: React.FC = () => {
             ? (convertedText = convertedText.replaceAll(key, item.value))
             : (convertedText = convertedText.replaceAll(
                 key,
-                `Value for ${item.name} isn't available!!!`
+                `Value for ${key} isn't available!!!`
               ));
         }
       });
@@ -72,9 +65,28 @@ const MainPage: React.FC = () => {
     if (!isPending) {
       setDisplayedText(convertedText);
     }
-  }, [enteredText, markersWithoutDuplicates]);
+  }, [enteredText, markersWithoutDuplicates, correctlyText, isPending]);
+
+  useEffect(() => {
+    const result = displayedText.match(pattern);
+    // console.log(result);
+    if (
+      result !== null &&
+      result.length &&
+      valuesEntry.length !== 0 &&
+      !isPending
+    ) {
+      result.forEach((item: string) => {
+        if (enteredText.includes(item) && displayedText.includes(item)) {
+          console.log('Error');
+          //   fetchingNameHandling();
+        }
+      });
+    }
+  }, [isPending]);
 
   const enteredTextHandling = (text: string) => {
+    setCorrectlyText(null);
     setEnteredText(text);
     let result = [...text.matchAll(pattern)];
     if (result.length !== findedMarkersQuantity) {
@@ -83,6 +95,7 @@ const MainPage: React.FC = () => {
           setMarkersWithoutDuplicates(
             new Map(
               markersWithoutDuplicates.set(item[0], {
+                id: undefined,
                 type: item[1],
                 symbol: item[2],
                 name: undefined,
@@ -98,7 +111,7 @@ const MainPage: React.FC = () => {
   };
 
   const fetchingNameHandling = () => {
-    let test: any[] = [];
+    let entrys: Entry[] = [];
     markersWithoutDuplicates.forEach(async (item: Markers, key: string) => {
       if (item.name === undefined) {
         try {
@@ -107,52 +120,50 @@ const MainPage: React.FC = () => {
           const res: AxiosResponse<AxiosResponseOfName> = await axios.get(
             `https://api.coinpaprika.com/v1/search/?q=${item.symbol}&c=currencies&modifier=symbol_search&limit=1`
           );
-          if (res.data) {
+          if (res.data.currencies.length) {
             setMarkersWithoutDuplicates(
               new Map(
                 markersWithoutDuplicates.set(key, {
                   ...item,
+                  id: res.data.currencies[0].id,
                   name: res.data.currencies[0].name,
                 })
               )
             );
             if (item.type === KeyAvailable.value) {
-              //   console.log(res.data.currencies[0].name);
               const entry: Entry = {
                 key,
                 item: {
                   ...item,
+                  id: res.data.currencies[0].id,
                   name: res.data.currencies[0].name,
                 },
               };
-              test.push(entry);
-              setQuantity(test);
+              entrys.push(entry);
+              setSetValuesEntry(entrys);
             }
+            setIsPending(false);
+          } else {
+            errorHandling(false, key);
           }
-          setIsPending(false);
         } catch (err: any) {
-          console.log(err.response);
-          setIsPending(false);
+          errorHandling(true, key, err);
         }
       }
     });
   };
 
   const fetchingValueHandling = (entry: Entry[]) => {
-    console.log('fetchingValueHandling');
-    // console.log(markersWithoutDuplicates);
-    // console.log(quantity);
-    setQuantity([]);
+    setSetValuesEntry([]);
     entry.forEach(async (item: Entry) => {
-      // console.log(item);
       try {
         setIsPending(true);
         console.log('Go Value');
         const res: AxiosResponse<any> = await axios.get(
-          `https://api.coinpaprika.com/v1/tickers?quotes=USD,${item.item.symbol}`
+          `https://api.coinpaprika.com/v1/tickers/${item.item.id}`
         );
         if (res.data) {
-          const result = res.data[0].quotes.USD.price.toFixed(2);
+          const result = res.data.quotes.USD.price.toFixed(2);
           setMarkersWithoutDuplicates(
             new Map(
               markersWithoutDuplicates.set(item.key, {
@@ -164,28 +175,38 @@ const MainPage: React.FC = () => {
         }
         setIsPending(false);
       } catch (err: any) {
-        console.log(err.response);
-        console.log(item.key);
-        let text = enteredText.slice(0, enteredText.length);
-        text = text.replace('Value/BITGOLD', 'Error');
-        console.log(text);
-        setEnteredText('www');
-        setIsPending(false);
+        errorHandling(true, item.key, err);
       }
     });
   };
 
-  const test = async (symbol: string) => {
-    try {
-      const res: AxiosResponse<any> = await axios.get(
-        `https://api.coinpaprika.com/v1/tickers?quotes=USD,${symbol}`
-      );
-      if (res.data) {
-        console.log(res.data[0].quotes.USD.price.toFixed(2));
+  const errorHandling = (isError: boolean, key: string, err?: any) => {
+    console.log(err);
+    if (isError && err !== undefined) {
+      if (err.response.status === 404) {
+        setError({
+          isError: true,
+          message: `For marker ${key} ${err.response.data.error}!!! Value isn't available!!!`,
+        });
+      } else if (err.response.status === 429) {
+        setError({ isError: true, message: 'Too many requests' });
+      } else {
+        setError({ isError: true, message: 'Something went wrong' });
       }
-    } catch (err: any) {
-      console.log(err.response);
     }
+    if (!isError) {
+      setError({
+        isError: true,
+        message: `Marker ${key} isn't correctly. If exist incorrect marker, you gotta remove them`,
+      });
+    }
+    setCorrectlyText(enteredText.replace(key, ''));
+    markersWithoutDuplicates.delete(key);
+    const changedMap = new Map(markersWithoutDuplicates);
+    changedMap.delete(key);
+    setMarkersWithoutDuplicates(changedMap);
+    setIsPending(false);
+    setError({ isError: false, message: '' });
   };
 
   return (
@@ -198,23 +219,18 @@ const MainPage: React.FC = () => {
       <div className={classes.container}>
         <Grid container justifyContent="center">
           <Grid item xs={12} sm={12} md={6}>
-            <EnterArea getContentText={enteredTextHandling} />
+            <EnterArea
+              setCorrectlyText={correctlyText}
+              getContentText={enteredTextHandling}
+            />
           </Grid>
           <Grid item xs={12} sm={12} md={6}>
-            <DisplayArea convertedText={displayedText} />
-            <button
-              onClick={() => {
-                // console.log(markersWithoutDuplicates);
-                // console.log(enteredText);
-                test('BITGOLD');
-              }}
-            >
-              Get value
-            </button>
+            <DisplayArea convertedText={displayedText} isPending={isPending} />
             <button
               onClick={() => {
                 console.log(markersWithoutDuplicates);
-                console.log(quantity);
+                console.log(valuesEntry);
+                console.log(isPending);
               }}
             >
               Show Map

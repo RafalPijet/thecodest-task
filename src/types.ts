@@ -14,6 +14,7 @@ export interface AxiosResponseOfName {
 }
 
 export interface Markers {
+    id: string | undefined;
     type: string;
     symbol: string;
     name: string | undefined;
@@ -23,6 +24,11 @@ export interface Markers {
 export interface Entry {
     key: string;
     item: Markers;
+}
+
+export interface ErrorMarker {
+    isError: boolean;
+    message: string;
 }
 
 export enum KeyAvailable {

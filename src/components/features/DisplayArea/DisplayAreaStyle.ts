@@ -1,5 +1,5 @@
 import { makeStyles, createStyles } from '@material-ui/core/styles';
-import { displayColor } from '../../../globalStyles'
+import { displayColor, secondaryColor } from '../../../globalStyles'
 
 export const useStyles = makeStyles(() => createStyles({
     root: {
@@ -9,6 +9,14 @@ export const useStyles = makeStyles(() => createStyles({
         height: 610,
         overflowY: 'auto'
     },
+    center: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    spiner: {
+        color: secondaryColor
+    },
     text: {
         color: displayColor
     }
@@ -16,4 +24,5 @@ export const useStyles = makeStyles(() => createStyles({
 
 export interface Props {
     convertedText: string;
+    isPending: boolean;
 }
