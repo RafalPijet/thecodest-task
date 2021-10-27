@@ -42,11 +42,11 @@ const MainPage: React.FC = () => {
       result.forEach((item: string) => {
         if (displayedText.includes(item)) {
           textOfDisplay = textOfDisplay.replace(item, '');
-          console.log('Error');
         }
       });
       setDisplayedText(textOfDisplay);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error.isError, displayedText]);
 
   useEffect(() => {
@@ -75,6 +75,7 @@ const MainPage: React.FC = () => {
     if (enteredText.includes(KeyAvailable.value) && valuesEntry.length !== 0) {
       fetchingValueHandling(valuesEntry);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enteredText, valuesEntry]);
 
   const enteredTextHandling = (text: string) => {
@@ -108,7 +109,6 @@ const MainPage: React.FC = () => {
       if (item.name === undefined) {
         try {
           setIsPending(true);
-          console.log('Go Name');
           const res: AxiosResponse<AxiosResponseOfName> = await axios.get(
             `https://api.coinpaprika.com/v1/search/?q=${item.symbol}&c=currencies&modifier=symbol_search&limit=1`
           );
@@ -150,7 +150,6 @@ const MainPage: React.FC = () => {
     entry.forEach(async (item: Entry) => {
       try {
         setIsPending(true);
-        console.log('Go Value');
         const res: AxiosResponse<any> = await axios.get(
           `https://api.coinpaprika.com/v1/tickers/${item.item.id}`
         );
@@ -222,16 +221,6 @@ const MainPage: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={12} md={6}>
             <DisplayArea convertedText={displayedText} isPending={isPending} />
-            <button
-              onClick={() => {
-                console.log(markersWithoutDuplicates);
-                console.log(valuesEntry);
-                console.log(isPending);
-                console.log(error);
-              }}
-            >
-              Show Map
-            </button>
           </Grid>
         </Grid>
       </div>
